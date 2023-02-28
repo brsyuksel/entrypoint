@@ -30,6 +30,7 @@ type Upstream struct {
 	BalancingPolicy string   `yaml:"balancing"`
 	Targets         []Target `yaml:"targets"`
 	Health          Health   `yaml:"health,omitempty"`
+	RetryPolicyName string   `yaml:"retry,omitempty"`
 }
 
 type VerifyOptions struct {
@@ -61,11 +62,10 @@ type EntrypointAuth struct {
 }
 
 type Entrypoint struct {
-	UpstreamName    string         `yaml:"upstream"`
-	Auth            EntrypointAuth `yaml:"auth,omitempty"`
-	Compression     bool           `yaml:"compression,omitempty"`
-	RetryPolicyName string         `yaml:"retry,omitempty"`
-	RateLimiter     string         `yaml:"rate_limit,omitempty"`
+	UpstreamName string         `yaml:"upstream"`
+	Auth         EntrypointAuth `yaml:"auth,omitempty"`
+	Compression  bool           `yaml:"compression,omitempty"`
+	RateLimiter  string         `yaml:"rate_limit,omitempty"`
 }
 
 type Config struct {

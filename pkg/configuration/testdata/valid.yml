@@ -9,6 +9,19 @@ metrics:
   path: /_metrics
   expose: true
 
+retry_policies:
+  exp_backoff_max_5:
+    policy: backoff
+    max_attempts: 5
+    interval: 100
+  const_max_3:
+    policy: constant
+    max_attempts: 3
+    interval: 200
+  random_max_2:
+    policy: random
+    max_attempts: 2
+
 upstreams:
   basic_auth:
     balancing: roundrobin
@@ -26,6 +39,7 @@ upstreams:
         weight: 10
       - url: http://10.0.0.3/token_auth
         weight: 20
+    retry: exp_backoff_max_5
   jwt_auth:
     balancing: scatter-gather
     targets:
@@ -62,19 +76,6 @@ authentication_policies:
       secret: token_secret_first
       upstream: jwt_auth
 
-retry_policies:
-  exp_backoff_max_5:
-    policy: backoff
-    max_attempts: 5
-    interval: 100
-  const_max_3:
-    policy: constant
-    max_attempts: 3
-    interval: 200
-  random_max_2:
-    policy: random
-    max_attempts: 2
-
 entrypoints:
   /service1:
     upstream: service1_ups
@@ -85,7 +86,6 @@ entrypoints:
           - $.json.path.attr:expected-value
     compression: true
     rate_limit: 10/m
-    retry: exp_backoff_max_5
 
   /service2:
     upstream: service2_ups
