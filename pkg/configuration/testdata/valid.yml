@@ -1,0 +1,98 @@
+server:
+  port: 443
+  tls:
+    provider: autocert
+    options:
+      domain: yourdomain.ltd
+
+metrics:
+  path: /_metrics
+  expose: true
+
+upstreams:
+  basic_auth:
+    balancing: roundrobin
+    targets:
+      - url: http://10.0.0.2/basic_auth
+      - url: http://10.0.0.3/basic_auth
+    health:
+      path: /_health
+      interval: 100
+      window: 2000
+  token_auth:
+    balancing: roundrobinXX
+    targets:
+      - url: http://10.0.0.2/token_auth
+        weight: 10
+      - url: http://10.0.0.3/token_auth
+        weight: 20
+  jwt_auth:
+    balancing: scatter-gather
+    targets:
+      - url: https://10.0.0.3/token_auth
+      - url: unix:///var/run/service/token_auth.sock
+  service1_ups:
+    balancing: roundrobin
+    targets:
+      - url: URL1
+      - url: URL2
+
+authentication_policies:
+  example_basic_auth:
+    type: basic
+    verify:
+      list:
+        - user1:pass1
+        - user2:pass2
+  example_basic_auth_with_verify:
+    type: basic
+    verify:
+      upstream: basic_auth
+  example_token_auth_with_verify:
+    type: token
+    verify:
+      upstream: token_auth
+  example_jwt_auth:
+    type: jwt
+    verify:
+      secret: token_secret
+  example_jwt_auth_with_verify_source:
+    type: jwt
+    verify:
+      secret: token_secret_first
+      upstream: jwt_auth
+
+retry_policies:
+  exp_backoff_max_5:
+    policy: backoff
+    max_attempts: 5
+    interval: 100
+  const_max_3:
+    policy: constant
+    max_attempts: 3
+    interval: 200
+  random_max_2:
+    policy: random
+    max_attempts: 2
+
+entrypoints:
+  /service1:
+    upstream: service1_ups
+    auth:
+      with: example_jwt_auth_with_verify_source
+      options:
+        matches:
+          - $.json.path.attr:expected-value
+    compression: true
+    rate_limit: 10/m
+    retry: exp_backoff_max_5
+
+  /service2:
+    upstream: service2_ups
+    auth:
+      with: example_basic_auth
+      options:
+        allowed:
+          - user2
+    compression: true
+    rate_limit: 100/s
